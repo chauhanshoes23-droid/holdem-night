@@ -1,0 +1,644 @@
+<title>Hold'em Night</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,600;6..96,800&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: lobby card, then a table (felt oval with seats) over a control/chat dock. Single dark card-room look. */
+:root{
+  --felt:#0d3b36; --felt2:#09282a; --rail:#2a1a12; --brass:#d9a441; --ink:#f3ead8; --mute:#9fb3ad; --ruby:#c8402f;
+  --bg:#071a1b; --panel:#0c2527; --line:#1d4a47; --good:#58c48a;
+  --display:'Bodoni Moda',Georgia,serif; --ui:'Barlow Semi Condensed','Arial Narrow',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font:500 16px/1.35 var(--ui);padding-inline:16px;padding-block:16px 28px;margin:0}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
+button{font:inherit;cursor:pointer;color:inherit}
+input{font:inherit;color:var(--ink);background:#06191a;border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+input:focus-visible,button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.wrap{max-width:1100px;margin-inline:auto}
+.btn{background:#123a3a;border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-weight:600;letter-spacing:.02em}
+.btn:hover{background:#17494a}
+.btn.gold{background:var(--brass);color:#2a1a05;border-color:#f0c56a}
+.btn.gold:hover{background:#ecb957}
+.btn.ruby{background:#5a1e17;border-color:var(--ruby)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+kbd{font:600 11px var(--ui);border:1px solid currentColor;border-radius:4px;padding:0 5px;opacity:.7;margin-left:6px}
+.label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+
+/* lobby */
+.hero{display:grid;gap:28px;grid-template-columns:1.1fr 1fr;align-items:center;min-height:70vh}
+.hero h1{font-size:clamp(40px,7vw,84px);line-height:.95;font-weight:800}
+.hero h1 em{color:var(--brass);font-style:italic;font-weight:600}
+.hero p{color:var(--mute);max-width:46ch}
+.card-panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>input{flex:1 1 140px}
+.split{display:flex;align-items:center;gap:10px;color:var(--mute);font-size:12px;letter-spacing:.14em}
+.split:before,.split:after{content:"";flex:1;height:1px;background:var(--line)}
+.err{color:#ff9a8c;min-height:1.2em;font-size:14px}
+.fan{display:flex;justify-content:center;gap:0;margin-top:22px}
+@media(max-width:760px){.hero{grid-template-columns:1fr;min-height:0;padding-top:12px}}
+
+/* top bar */
+.top{display:flex;gap:10px 18px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.top h2{font-size:24px}
+.party{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.code{font:700 20px var(--ui);letter-spacing:.3em;background:#06191a;border:1px dashed var(--brass);color:var(--brass);padding:4px 12px;border-radius:8px}
+.small{padding:6px 12px;font-size:14px;border-radius:8px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+.rcol{display:grid;gap:12px;grid-template-rows:auto minmax(0,1fr);position:sticky;top:8px;height:calc(100vh - 16px);max-height:760px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}.rcol{display:contents}
+ #dock{position:fixed;left:0;right:0;bottom:0;z-index:8;border-radius:16px 16px 0 0;max-height:46vh;overflow:auto;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 30px #000a}
+ body{padding-bottom:300px}}
+
+/* felt */
+.felt{position:relative;min-height:470px;border-radius:200px/160px;background:radial-gradient(ellipse at 50% 40%,var(--felt) 0,var(--felt2) 78%);border:10px solid var(--rail);box-shadow:inset 0 0 0 2px #5b3a22,inset 0 10px 60px #0008,0 18px 40px #0007;margin-block:6px}
+@media(max-width:600px){.felt{border-radius:120px/90px;min-height:430px;border-width:7px}}
+.center{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);display:grid;gap:8px;justify-items:center;width:min(86%,430px)}
+.pot{font:700 15px var(--ui);letter-spacing:.12em;color:var(--brass);text-transform:uppercase}
+.pot b{font-size:26px;color:var(--ink);letter-spacing:0;margin-left:6px}
+.board{display:flex;gap:6px;min-height:78px}
+.phase{font-size:12px;color:var(--mute);letter-spacing:.2em;text-transform:uppercase}
+.banner{font:600 15px var(--ui);text-align:center;background:#000a;border:1px solid var(--brass);border-radius:10px;padding:6px 12px;max-width:100%}
+.seat{position:absolute;transform:translate(-50%,-50%);width:clamp(96px,17%,138px);text-align:center;display:grid;gap:4px;justify-items:center}
+.plate{background:#071d1e;border:1px solid var(--line);border-radius:12px;padding:5px 8px;width:100%;position:relative}
+.plate .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.plate .ch{color:var(--brass);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+.seat.turn .plate{border-color:var(--brass);box-shadow:0 0 0 2px #d9a44166,0 0 24px #d9a44188;animation:pulse 1.4s infinite}
+.seat.folded{opacity:.45}
+.seat.win .plate{border-color:var(--good);box-shadow:0 0 0 2px #58c48a88,0 0 28px #58c48a99}
+.seat.me .plate{border-color:#7fd1c4}
+.tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.tag.hot{color:var(--ruby);font-weight:700}
+.tag.good{color:var(--good);font-weight:700}
+.badge{position:absolute;top:-9px;right:-7px;display:flex;gap:3px}
+.badge i{font:700 11px var(--ui);font-style:normal;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#f3ead8;color:#222}
+.badge i.bl{background:#2d5d9f;color:#fff}
+.badge i.bl2{background:#8a3b9b;color:#fff}
+.betpill{font:700 13px var(--ui);background:#0009;border:1px solid var(--brass);color:var(--ink);border-radius:20px;padding:1px 10px;font-variant-numeric:tabular-nums;min-height:22px}
+.mini{display:flex;gap:3px;min-height:46px}
+@keyframes pulse{50%{box-shadow:0 0 0 2px #d9a44199,0 0 34px #d9a441aa}}
+
+/* cards */
+.card{width:50px;height:72px;border-radius:7px;background:#faf6ea;color:#1b1b1b;border:1px solid #c9bfa6;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 22px/1 var(--display);box-shadow:0 3px 8px #0006;user-select:none}
+.card.red{color:#c22b22}
+.card small{font:inherit;font-size:22px;line-height:1}
+.card.sm{width:32px;height:46px;font-size:15px;border-radius:5px}.card.sm small{font-size:15px}
+.card.back,.cb{background:repeating-linear-gradient(45deg,#7b1f1a 0 5px,#5c1511 5px 10px);border:3px solid #faf6ea;box-shadow:0 3px 8px #0006}
+.card.sm.back{border-width:2px}
+.deal{animation:dealIn .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes dealIn{from{transform:translate(0,-60px) rotate(-14deg) scale(.6);opacity:0}to{transform:none;opacity:1}}
+.card.hit{box-shadow:0 0 0 2px var(--good),0 3px 8px #0006}
+
+/* dock */
+.dock{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:14px}
+.mine-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.mine{display:flex;gap:10px;perspective:800px}
+.pc{width:62px;height:88px;touch-action:none;position:relative;cursor:pointer}
+.pc .in{position:absolute;inset:0;transition:transform .7s cubic-bezier(.3,1.3,.5,1);transform-style:preserve-3d}
+.pc.up .in{transform:rotateY(180deg)}
+.pc .f,.pc .b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:9px}
+.pc .b{background:repeating-linear-gradient(45deg,#7b1f1a 0 6px,#5c1511 6px 12px);border:4px solid #faf6ea;box-shadow:0 6px 14px #0008}
+.pc .f{transform:rotateY(180deg);background:#faf6ea;color:#1b1b1b;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 28px/1 var(--display);box-shadow:0 6px 14px #0008}
+.pc .f.red{color:#c22b22}
+.pc .f small{font:inherit;font-size:28px}
+.pc.up{filter:drop-shadow(0 0 14px #d9a44199)}
+.pc.d1{animation:dealIn .5s .12s both}.pc.d0{animation:dealIn .5s both}
+.mine.out{opacity:.35}
+.actions{display:grid;gap:8px}
+.actions .btn{padding:11px 12px;font-size:17px;width:100%}
+.raisebox{display:grid;gap:8px;background:#06191a;border:1px solid var(--line);border-radius:12px;padding:10px}
+.raisebox .r1{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.raisebox .r1>.btn{flex:1 1 100%}
+.raisebox input[type=range]{flex:1 1 140px;accent-color:var(--brass);padding:0}
+.raisebox input[type=number]{width:100px;padding:6px 8px}
+.quick .btn{width:auto}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{padding:4px 10px;font-size:13px;border-radius:20px}
+.status{color:var(--mute);min-height:1.4em}
+.status b{color:var(--brass)}
+.players{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.players li{display:flex;justify-content:space-between;background:#06191a;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+
+/* side */
+.side{background:var(--panel);border:1px solid var(--line);border-radius:16px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:150px;overflow:hidden}
+@media(max-width:900px){.side{height:340px}}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;background:none;border:0;padding:10px;font-weight:600;color:var(--mute);letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+.tabs button.on{color:var(--brass);box-shadow:inset 0 -2px var(--brass)}
+.msgs{overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.msg{font-size:15px;overflow-wrap:anywhere}
+.msg b{color:#7fd1c4}.msg.mine b{color:var(--brass)}
+.msg time{color:var(--mute);font-size:11px;margin-left:6px}
+.logl{color:var(--mute);font-size:14px}
+.say{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.say input{flex:1}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#000d;border:1px solid var(--brass);padding:8px 16px;border-radius:20px;z-index:9}
+.help{color:var(--mute);font-size:13px}
+
+/* guide */
+#guide{position:fixed;inset:0;z-index:20;background:#041012f2;overflow:auto;padding:0 16px 40px}
+.gwrap{max-width:820px;margin-inline:auto}
+.gbar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#041012;padding:14px 0;border-bottom:1px solid var(--line);z-index:2}
+.gbar h2{font-size:28px}
+#guide h3{font-family:var(--display);font-size:24px;margin:34px 0 8px;color:var(--brass)}
+#guide h4{margin:18px 0 4px;font-size:17px;letter-spacing:.02em}
+#guide p,#guide li{color:#d8e2dd;max-width:68ch}
+#guide ul,#guide ol{padding-left:20px;display:grid;gap:6px}
+#guide dl{display:grid;gap:10px;margin:0}
+#guide dt{font-weight:700;color:var(--ink)}
+#guide dd{margin:2px 0 0;color:#d8e2dd;max-width:68ch}
+.gtoc{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.gtoc a{color:var(--brass);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:14px;text-decoration:none}
+.rank{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
+.rank .cards{display:flex;gap:4px}
+.rank b{display:block}
+.rank span{color:var(--mute);font-size:14px}
+@media(max-width:560px){.rank{grid-template-columns:1fr}}
+.callout{background:#0c2527;border:1px solid var(--line);border-left:3px solid var(--brass);border-radius:8px;padding:10px 14px;margin:12px 0}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/*ENGINE*/
+</script>
+<script>
+(() => {
+const BASE = location.origin + location.pathname;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = { get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
+let solo = false, botTimer = 0, botN = Math.min(8, Math.max(1, +store.get('ho-bots') || 3));
+let db, uid, code = '', myName = store.get('ho-name') || '', meta = null, players = [], game = null, chat = [];
+let unsubs = [], wq = Promise.resolve(), raiseTo = 0, tab = 'chat', peekTimer = 0, lastHandKey = '', autoTimer = 0, seenCards = new Set(), err = '';
+
+const suitHtml = c => `<span>${RN[rk(c)]}</span><small>${SU[su(c)]}</small>`;
+const isRed = c => su(c) === 1 || su(c) === 2;
+const cardEl = (c, cls = '', extra = '') => `<div class="card ${isRed(c) ? 'red' : ''} ${cls} ${extra}">${suitHtml(c)}</div>`;
+const backEl = (cls = '') => `<div class="card back ${cls}"></div>`;
+function toast(t){ const e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => e.hidden = true, 2600); }
+async function copy(text, inputId){
+  try { await navigator.clipboard.writeText(text); toast('Copied'); }
+  catch(e){ const i = document.getElementById(inputId); if (i){ i.select(); toast('Press Ctrl+C to copy'); } }
+}
+const link = () => BASE + '#' + code;
+
+/* ---------- boot ---------- */
+function newId(){ const a = new Uint8Array(9); crypto.getRandomValues(a); return 'u' + Array.from(a, x => (x % 36).toString(36)).join(''); }
+async function boot(){
+  uid = store.get('ho-uid') || newId(); store.set('ho-uid', uid);
+  renderHome();
+  const h = (location.hash || '').replace('#', '').toUpperCase();
+  if (h.length === 5 && myName) join(h);
+}
+
+/* ---------- home ---------- */
+function renderHome(){
+  const pre = (location.hash || '').replace('#', '').toUpperCase();
+  $('#app').innerHTML = `<div class="hero"><div>
+    <div class="label">Texas Hold'em · up to 8 players</div>
+    <h1>Hold'em <em>Night</em></h1>
+    <p>Automated dealer, 10,000 chips each, blinds that climb every 8 hands. Make a party, send the code or link to your friend, and play from separate laptops.</p>
+    <p><button class="btn" id="how">How to play</button></p><div class="fan">${[[12,0],[12,1]].map(([r,s],i)=>`<div class="card ${s==1?'red':''}" style="transform:rotate(${i?8:-8}deg) translateX(${i?-10:10}px);width:64px;height:92px">${suitHtml(s*13+r)}</div>`).join('')}</div>
+  </div><div class="card-panel">
+    <label class="label" for="nm">Your name</label>
+    <input id="nm" maxlength="14" placeholder="e.g. Chauhan" value="${esc(myName)}" autocomplete="off">
+    <button class="btn gold" id="mk" >Create a party</button>
+    <div class="split">OR JOIN</div>
+    <div class="row"><input id="cd" maxlength="5" placeholder="Party code" value="${esc(pre.length === 5 ? pre : '')}" style="text-transform:uppercase;letter-spacing:.25em" autocomplete="off"><button class="btn" id="jn" >Join</button></div>
+    <div class="split">OR PLAY BOTS</div>
+    <div class="row"><label class="label" for="bn">Bots</label><input id="bn" type="range" min="1" max="8" value="${botN}" style="flex:1 1 120px;padding:0;accent-color:var(--brass)"><b id="bv" style="min-width:1.2em">${botN}</b><button class="btn gold" id="bot">Play vs bots</button></div>
+    <div class="help">Solo table: you plus 1 to 8 bots. No party or internet friends needed.</div>
+    <div class="err" id="er">${esc(err)}</div>
+  </div></div>`;
+  $('#nm').oninput = e => { myName = e.target.value.trim(); store.set('ho-name', myName); };
+  $('#how').onclick = openGuide;
+  $('#mk').onclick = create;
+  $('#bn').oninput = e => { botN = +e.target.value; $('#bv').textContent = botN; store.set('ho-bots', botN); };
+  $('#bot').onclick = startSolo;
+  $('#jn').onclick = () => join($('#cd').value.trim().toUpperCase());
+  $('#cd').onkeydown = e => { if (e.key === 'Enter') $('#jn').click(); };
+}
+const needName = () => { myName = ($('#nm')?.value || myName).trim(); if (!myName){ err = 'Type a name first.'; renderHome(); return false; } store.set('ho-name', myName); return true; };
+
+let ws = null, closing = false;
+function connect(){
+  return new Promise((res, rej) => {
+    if (ws && ws.readyState === 1) return res();
+    const s = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+    ws = s;
+    s.onopen = () => res();
+    s.onerror = () => rej(new Error('connect'));
+    s.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch(x){ return; } onMsg(m); };
+    s.onclose = () => { if (ws === s){ ws = null; if (code && !solo && !closing){ toast('Connection lost. Reconnecting…'); setTimeout(reconnect, 1500); } } };
+  });
+}
+async function reconnect(){ if (!code || solo || ws) return; try { await connect(); send({ t: 'join', code, name: myName, pid: uid }); } catch(e){ setTimeout(reconnect, 2500); } }
+function send(o){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); else toast('Not connected to the server'); }
+setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"t":"ping"}'); }, 25000);
+async function create(){
+  if (!needName()) return;
+  try { await connect(); } catch(e){ err = 'Could not reach the game server. Try again in a moment.'; renderHome(); return; }
+  send({ t: 'create', name: myName, pid: uid });
+}
+async function join(c){
+  if (!/^[A-Z0-9]{5}$/.test(c)){ err = 'Party codes are 5 characters.'; renderHome(); return; }
+  if (!myName){ err = 'Type a name first.'; renderHome(); return; }
+  try { await connect(); } catch(e){ err = 'Could not reach the game server. Try again in a moment.'; renderHome(); return; }
+  send({ t: 'join', code: c, name: myName, pid: uid });
+}
+function onMsg(m){
+  if (m.t === 'err'){
+    if (m.fatal || !shell.built){ code = ''; shell.built = false; err = m.msg; renderHome(); } else toast(m.msg);
+    return;
+  }
+  if (m.t === 'joined'){ code = m.code; err = ''; try { history.replaceState(null, '', '#' + m.code); } catch(e){} if (!shell.built) buildShell(); render(); return; }
+  if (m.t === 'room'){ meta = { hostId: m.hostId }; players = m.players; render(); return; }
+  if (m.t === 'game'){ game = m.game; render(); return; }
+  if (m.t === 'chat'){ chat = m.msgs; renderMsgs(); return; }
+}
+function leave(){
+  closing = true; solo = false; clearTimeout(botTimer); clearTimeout(autoTimer);
+  if (ws){ try { ws.close(); } catch(e){} } ws = null;
+  game = null; players = []; chat = []; code = ''; shell.built = false;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch(e){}
+  closing = false; renderHome();
+}
+
+/* ---------- game actions ---------- */
+function commit(s){ s.v = (game ? game.v : 0) + 1; game = s; render(); scheduleAuto(); botTurn(); }
+const mySeat = () => game ? game.seats.findIndex(x => x.id === uid) : -1;
+const isHost = () => meta && meta.hostId === uid;
+function doAction(type, amt){
+  if (!game || game.turn < 0 || game.seats[game.turn].id !== uid) return;
+  if (solo) commit(applyAction(game, type, amt)); else send({ t: 'act', type, amount: amt });
+}
+function startGame(){ if (players.length < 2) return toast('Need at least 2 players'); if (solo) commit(dealHand(newGame(players), players)); else send({ t: 'start' }); }
+function nextHand(){ if (!game || game.phase !== 'showdown') return; if (solo) commit(dealHand(game, players)); else send({ t: 'next' }); }
+function scheduleAuto(){
+  clearTimeout(autoTimer);
+  if (solo && game && game.phase === 'showdown'){ const v = game.v; autoTimer = setTimeout(() => { if (game && game.v === v) nextHand(); }, 9000); }
+}
+
+function guideHtml(){
+  const ex = a => a.map(([r, s]) => cardEl(s * 13 + r - 2, 'sm')).join('');
+  const ranks = [
+    ['Royal flush', 'A, K, Q, J, 10, all the same suit. The best hand there is.', [[14,0],[13,0],[12,0],[11,0],[10,0]]],
+    ['Straight flush', 'Five cards in a row, all the same suit.', [[9,1],[8,1],[7,1],[6,1],[5,1]]],
+    ['Four of a kind', 'Four cards of the same rank, plus one more card.', [[13,0],[13,1],[13,2],[13,3],[3,0]]],
+    ['Full house', 'Three of one rank and two of another.', [[12,0],[12,1],[12,2],[8,3],[8,0]]],
+    ['Flush', 'Any five cards of the same suit, not in a row.', [[13,2],[11,2],[7,2],[4,2],[2,2]]],
+    ['Straight', 'Five cards in a row, mixed suits. The ace can be high (10-J-Q-K-A) or low (A-2-3-4-5).', [[9,0],[8,1],[7,2],[6,3],[5,0]]],
+    ['Three of a kind', 'Three cards of the same rank.', [[7,0],[7,1],[7,2],[13,3],[2,0]]],
+    ['Two pair', 'Two different pairs.', [[11,0],[11,1],[4,2],[4,3],[14,0]]],
+    ['One pair', 'Two cards of the same rank.', [[10,0],[10,1],[14,2],[7,3],[3,0]]],
+    ['High card', 'Nothing above. Your single highest card plays.', [[14,0],[11,1],[8,2],[5,3],[2,0]]]
+  ];
+  return `<div class="gwrap"><div class="gbar"><h2>How to play</h2><button class="btn small" id="gx">Close <kbd>Esc</kbd></button></div>
+  <div class="gtoc"><a href="#g1" data-g="g1">The goal</a><a href="#g2" data-g="g2">A hand, step by step</a><a href="#g3" data-g="g3">Your buttons</a><a href="#g4" data-g="g4">Glossary</a><a href="#g5" data-g="g5">Hand rankings</a><a href="#g6" data-g="g6">This game's features</a><a href="#g7" data-g="g7">Tips</a></div>
+
+  <h3 id="g1">The goal</h3>
+  <p>Texas Hold'em is a card game where you try to win chips from the other players. Everyone gets two private cards. Five more cards are placed face up in the middle for everyone to share. You make the best five-card hand you can from those seven cards (your two plus the five shared ones).</p>
+  <p>You win the chips in the middle (called the <b>pot</b>) in one of two ways: everyone else folds (gives up) so you are the last player left, or you still have the best hand when all the cards are shown at the end. You do not have to have a good hand to win. If you bet and nobody dares to call, you win the pot no matter what you hold. That is called a bluff.</p>
+  <p>Everyone starts with <b>10,000 chips</b>. A player who loses all their chips is out. The game ends when one player has all the chips.</p>
+
+  <h3 id="g2">A hand, step by step</h3>
+  <p>One round of play is called a hand. Every hand follows the same steps.</p>
+  <ol>
+    <li><b>The dealer button and the blinds.</b> A small round "D" marker shows who the dealer is. It moves one seat clockwise every hand. The two players after the dealer must put in forced bets before they see their cards: the <b>small blind (SB)</b> is the smaller one, the <b>big blind (BB)</b> is double. This makes sure there is always something to win. Everyone else puts in nothing yet. The blinds go up every 8 hands, so the game cannot go on forever.</li>
+    <li><b>Hole cards.</b> Each player is dealt two private cards, face down. Only you can see yours (hold Space to peek).</li>
+    <li><b>Pre-flop betting.</b> Starting with the player after the big blind, each player in turn chooses to fold, call or raise (all explained below). It goes around the table until everyone still in the hand has put in the same amount.</li>
+    <li><b>The flop.</b> Three shared cards are turned face up in the middle. Another round of betting. This time the first player to act is the first one still in the hand to the left of the dealer button, and they may check.</li>
+    <li><b>The turn.</b> A fourth shared card appears. Another round of betting.</li>
+    <li><b>The river.</b> The fifth and last shared card appears. The final round of betting.</li>
+    <li><b>The showdown.</b> If two or more players are still in after the last betting round, everyone turns their cards over. The best five-card hand wins the pot. The game shows each player's hand name (like "Flush") and who won how much. If everyone else folded earlier, there is no showdown and the last player simply takes the pot without showing anything.</li>
+  </ol>
+  <div class="callout">Then the dealer button moves, new cards are dealt, and the next hand starts. In this game the next hand is dealt automatically after a few seconds.</div>
+
+  <h3 id="g3">Your buttons</h3>
+  <p>When it is your turn, the table highlights your seat with a gold glow and the action buttons on the right become active. When it is not your turn you can only wait (and peek at your cards).</p>
+  <dl>
+    <div><dt>Fold <kbd>F</kbd></dt><dd>Give up this hand. You throw your cards away and lose any chips you already put in the pot. You can't win this hand anymore, but you don't have to pay anything more. Fold when your hand is weak and somebody has bet.</dd></div>
+    <div><dt>Check <kbd>C</kbd></dt><dd>"Pass" without betting anything. You can only check when nobody has bet in this round (or when you are the big blind and nobody raised). You stay in the hand for free. If someone has bet, the button says Call instead.</dd></div>
+    <div><dt>Call <kbd>C</kbd></dt><dd>Match the current bet. The button shows the exact amount, for example "Call 200" means you put in 200 more chips so you have put in the same as the highest bettor. You stay in the hand.</dd></div>
+    <div><dt>Bet <kbd>R</kbd></dt><dd>Put chips in first when nobody else has bet yet in this round. Other players must then call, raise or fold. The button says "Bet" when there is no bet to match.</dd></div>
+    <div><dt>Raise <kbd>R</kbd></dt><dd>Increase the bet. Everyone who wants to stay in must now put in more chips too. The button says "Raise to 600" meaning your total bet for this round becomes 600 (not "add 600 more"). Use the slider or type an amount in the box, then press the button.</dd></div>
+    <div><dt>All-in <kbd>A</kbd></dt><dd>Put every chip you have in the middle. You can still win if you have the best hand, and you don't have to act again for the rest of the hand. The table shows "All-in" under your name. If other players have more chips, they can keep betting among themselves in a separate pot (see "side pot" below).</dd></div>
+  </dl>
+  <h4>The raise shortcuts under the slider</h4>
+  <dl>
+    <div><dt>Min</dt><dd>The smallest raise you are allowed to make. It is the current bet plus the size of the last raise (never less than the big blind).</dd></div>
+    <div><dt>½ pot</dt><dd>"Half pot". Sets your raise to a "half the pot" size: after you call the current bet, you raise by half of what is already in the middle. A good, middle-sized bet. For example if the pot is 1,000 and nobody has bet, ½ pot sets your bet to 500.</dd></div>
+    <div><dt>Pot</dt><dd>A "pot-sized" bet: after you call, you raise by the entire pot. For example if the pot is 1,000 and nobody has bet, Pot sets your bet to 1,000. It is the biggest standard bet and puts a lot of pressure on opponents.</dd></div>
+    <div><dt>All-in</dt><dd>Bets every chip you have (same as the All-in button).</dd></div>
+  </dl>
+  <p>You can always fine-tune the amount with the slider or by typing in the number box. The slider's smallest value is the minimum raise and its largest value is all your chips.</p>
+
+  <h3 id="g4">Glossary: every term on the screen</h3>
+  <dl>
+    <div><dt>Chips</dt><dd>The play money. The number under each player's name is how many chips they have left (their "stack").</dd></div>
+    <div><dt>Stack</dt><dd>All the chips a player has in front of them.</dd></div>
+    <div><dt>Pot</dt><dd>The total pile of chips in the middle of the table that the winner of the hand takes. It is shown in the centre ("Pot 1,500"). Every bet, call, raise and blind goes in the pot.</dd></div>
+    <div><dt>Bet pill (the small number in front of a player)</dt><dd>How many chips that player has put in during the current betting round. At the start of each new round the amounts reset.</dd></div>
+    <div><dt>Hole cards</dt><dd>Your two private cards.</dd></div>
+    <div><dt>Community cards / the board</dt><dd>The shared cards in the middle that everyone uses. There are up to five.</dd></div>
+    <div><dt>Pre-flop, Flop, Turn, River</dt><dd>The four betting rounds. Pre-flop is before any shared cards, flop is after three, turn after four and river after all five. The current one is written above the board.</dd></div>
+    <div><dt>Showdown</dt><dd>When the remaining players show their cards and the best hand wins.</dd></div>
+    <div><dt>D (dealer button)</dt><dd>The small white "D" badge on a seat. It shows who is the dealer this hand. Betting order is based on it.</dd></div>
+    <div><dt>SB / BB (small blind / big blind)</dt><dd>The blue "SB" and purple "BB" badges. These two players post forced bets at the start of each hand. Two numbers like "50/100" next to the hand number are the current small and big blind amounts.</dd></div>
+    <div><dt>Blinds going up</dt><dd>Every 8 hands the blinds get bigger (50/100, then 100/200, 150/300 and so on). Bigger blinds force the action and end long games.</dd></div>
+    <div><dt>Heads-up</dt><dd>When only two players are left. The dealer posts the small blind and acts first before the flop.</dd></div>
+    <div><dt>Folded</dt><dd>A player who gave up the hand. Their seat looks faded.</dd></div>
+    <div><dt>All-in</dt><dd>A player who has bet all their chips. They stay in until the showdown but can't be forced to put in more.</dd></div>
+    <div><dt>Side pot</dt><dd>When a player is all-in for less than the others keep betting, the extra chips go in a separate pot that the all-in player can't win. The all-in player can only win the main pot, up to what they put in from each player. The game works this out automatically and the winner banner shows "main pot" and "side pot".</dd></div>
+    <div><dt>Split pot</dt><dd>If two or more players have exactly equal hands, they share the pot equally. The banner says "split".</dd></div>
+    <div><dt>Kicker</dt><dd>The highest card in your hand that isn't part of your pair, trips or whatever. It breaks ties. For example A-K beats A-Q if both have a pair of aces, because the king is the higher kicker.</dd></div>
+    <div><dt>Bluff</dt><dd>Betting or raising with a weak hand to make others fold a better hand.</dd></div>
+    <div><dt>Suited</dt><dd>Two cards of the same suit (both hearts, for example). Suited hole cards can make a flush.</dd></div>
+    <div><dt>Pocket pair</dt><dd>Two hole cards of the same rank, like two jacks. A strong start.</dd></div>
+    <div><dt>Position</dt><dd>Where you sit compared to the dealer. Acting later in a round is better because you see what others did first.</dd></div>
+    <div><dt>Suits</dt><dd>♠ spades, ♥ hearts, ♦ diamonds, ♣ clubs. In Hold'em no suit is better than another. Card rank goes 2 (lowest) up to 10, J, Q, K, A (highest).</dd></div>
+  </dl>
+
+  <h3 id="g5">Hand rankings, best to worst</h3>
+  <p>Your best five cards, chosen from your two hole cards and the five shared cards. If two players have the same type of hand, the higher cards win (then the kickers). Suits never break ties.</p>
+  ${ranks.map(([n, d, c], i) => `<div class="rank"><div class="cards">${ex(c)}</div><div><b>${i + 1}. ${n}</b><span>${d}</span></div></div>`).join('')}
+
+  <h3 id="g6">This game's features</h3>
+  <h4>Seeing your cards</h4>
+  <p>Your two cards are face down on the right panel. <b>Hold Space</b> (or press and hold the "Hold to peek" button or the cards) to flip them up. Let go and they flip back so nobody looking over your shoulder sees them. At showdown your cards flip up by themselves if you are still in the hand.</p>
+  <h4>Keyboard shortcuts</h4>
+  <ul><li><b>Hold Space</b>: peek at your cards</li><li><b>F</b>: fold</li><li><b>C</b>: check or call</li><li><b>R</b>: bet or raise to the amount on the slider</li><li><b>A</b>: all-in</li></ul>
+  <p>The shortcuts only work on your turn and not while you are typing in the chat box.</p>
+  <h4>Playing with a friend online</h4>
+  <ol><li>Type your name and press <b>Create a party</b>. You get a 5-letter code.</li><li>Press <b>Copy invite link</b> and send it to your friend (or just tell them the code).</li><li>Your friend opens the link, types a name and presses Join. They can also open the game and type the code.</li><li>When everyone is in the waiting room, the host presses <b>Deal the first hand</b>. Up to 8 players fit at a table. Friends who join later are dealt in on the next hand.</li></ol>
+  <p>Your friend needs to be signed in to Claude and have access to this page (see the Share menu) to play with you.</p>
+  <h4>Chat</h4>
+  <p>The chat box is on the right. Type and press Enter. The "Game log" tab lists everything that happened in the hand (who folded, called, raised and won).</p>
+  <h4>Playing against bots</h4>
+  <p>On the title screen, use the slider to pick 1 to 8 computer players and press <b>Play vs bots</b>. Bots play on their own, think for a second before acting, and some are more aggressive than others. Nothing is shared online in this mode, so there is no chat.</p>
+  <h4>If someone leaves or goes quiet</h4>
+  <p>If it is somebody else's turn for more than 45 seconds, a "Fold them (idle)" button appears for everyone so the game never gets stuck.</p>
+  <h4>Winning</h4>
+  <p>When one player has all the chips, the game ends and the host can start a new game. A player who runs out of chips is marked "Busted".</p>
+
+  <h3 id="g7">Beginner tips</h3>
+  <ul>
+    <li>Fold weak starting hands (like 7-2 of different suits). Playing fewer, stronger hands is the easiest way to improve.</li>
+    <li>Pairs, two high cards (A, K, Q, J) and suited connected cards (like 8♥9♥) are good starting hands.</li>
+    <li>Checking is free, so check when you can and don't call big bets with a weak hand.</li>
+    <li>Pay attention to the shared cards: if there are three of one suit, someone might have a flush. If they are in a sequence, a straight is possible.</li>
+    <li>Don't go all-in with a mediocre hand. Save your chips for when you have an advantage.</li>
+    <li>Watch what other players do. A big raise usually means a good hand (or a bluff).</li>
+  </ul>
+  <p style="margin-top:28px"><button class="btn gold" id="gx2">Got it, let's play</button></p></div>`;
+}
+function openGuide(){
+  let g = document.getElementById('guide');
+  if (!g){ g = document.createElement('div'); g.id = 'guide'; g.setAttribute('role', 'dialog'); g.setAttribute('aria-label', 'How to play'); document.body.appendChild(g); }
+  g.innerHTML = guideHtml(); g.hidden = false; g.scrollTop = 0;
+  const close = () => { g.hidden = true; };
+  g.querySelector('#gx').onclick = close; g.querySelector('#gx2').onclick = close;
+  g.querySelectorAll('[data-g]').forEach(a => a.onclick = e => { e.preventDefault(); const t = g.querySelector('#' + a.dataset.g); if (t) g.scrollTop = t.offsetTop - 60; });
+  g.querySelector('#gx').focus();
+}
+document.addEventListener('keydown', e => { const g = document.getElementById('guide'); if (e.key === 'Escape' && g && !g.hidden) g.hidden = true; });
+const BOTS = ['Ace','Maverick','Doyle','Lola','Phil','Vegas','Tilt','Bluffy'];
+function startSolo(){
+  myName = ($('#nm')?.value || myName).trim() || 'You'; store.set('ho-name', myName);
+  solo = true; code = 'SOLO'; meta = { hostId: uid }; chat = [];
+  const names = BOTS.slice().sort(() => Math.random() - .5).slice(0, botN);
+  players = [{ id: uid, name: myName, t: 0 }, ...names.map((n, i) => ({ id: 'bot-' + i, name: n, t: i + 1 }))];
+  tab = 'log'; shell.built = false; buildShell();
+  game = null; commit(dealHand(newGame(players), players));
+}
+function botStrength(s, i){
+  const p = s.seats[i], [a, b] = p.hole.map(rk), hi = Math.max(a, b), lo = Math.min(a, b);
+  if (!s.board.length){
+    let v = (hi + lo) / 30 + (hi === lo ? 0.35 + hi / 40 : 0) + (su(p.hole[0]) === su(p.hole[1]) ? 0.05 : 0) + (hi - lo <= 2 && hi !== lo ? 0.04 : 0);
+    return Math.min(1, v);
+  }
+  const sc = best7([...p.hole, ...s.board]), cat = catOf(sc), bc = s.board.length >= 5 ? catOf(best7(s.board)) : -1;
+  if (cat <= 1 && cat === bc) return 0.2;
+  return [0.15 + hi / 70, 0.42 + (hi >= 11 ? .08 : 0), 0.7, 0.8, 0.88, 0.9, 0.95, 1, 1][cat];
+}
+function botDecide(s){
+  const i = s.turn, p = s.seats[i], L = legalInfo(s, i), pot = potOf(s);
+  let h = 0; for (const ch of p.id + 'x') h = (h * 31 + ch.charCodeAt(0)) % 97;
+  const aggr = 0.3 + (h % 6) / 10, st = botStrength(s, i) + (Math.random() - .5) * 0.12;
+  const sized = frac => Math.round((s.currentBet + L.toCall + pot * frac) / (s.bb / 2)) * (s.bb / 2);
+  if (L.toCall === 0){
+    if (L.canRaise && (st > 0.62 || (st > 0.3 && Math.random() < aggr * 0.22))) return ['raise', Math.max(L.minTo, Math.min(L.maxTo, sized(0.35 + Math.random() * 0.45)))];
+    return ['call'];
+  }
+  const need = L.toCall / (pot + L.toCall), bigBet = L.toCall > p.chips * 0.35;
+  if (st < need * 0.85 + (bigBet ? 0.15 : 0) && Math.random() > 0.06) return ['fold'];
+  if (L.canRaise && st > 0.78 && Math.random() < aggr) return ['raise', Math.max(L.minTo, Math.min(L.maxTo, sized(0.5 + Math.random() * 0.4)))];
+  return ['call'];
+}
+function botTurn(){
+  clearTimeout(botTimer);
+  if (!solo || !game || game.turn < 0 || !game.seats[game.turn].id.startsWith('bot-')) return;
+  const v = game.v;
+  botTimer = setTimeout(() => { if (solo && game && game.v === v){ const [t, a] = botDecide(game); commit(applyAction(game, t, a)); } }, 800 + Math.random() * 1000);
+}
+async function sendChat(){
+  const i = $('#cin'); const t = i.value.trim().slice(0, 300); if (!t) return; i.value = '';
+  send({ t: 'chat', text: t });
+}
+
+/* ---------- shell + render ---------- */
+const shell = { built: false };
+function buildShell(){
+  shell.built = true;
+  $('#app').innerHTML = `<div class="top"><h2>Hold'em Night</h2><div class="party" id="party"></div></div>
+  <div class="cols"><div id="stage"></div><div class="rcol"><div class="dock" id="dock"></div>
+  <div class="side"><div class="tabs"><button id="t1" class="on">Chat</button><button id="t2">Game log</button></div><div class="msgs" id="msgs" aria-live="polite"></div>
+  <div class="say" id="sayrow"><input id="cin" maxlength="300" placeholder="Say something…" autocomplete="off"><button class="btn small" id="snd">Send</button></div></div></div></div>`;
+  $('#t1').onclick = () => { tab = 'chat'; renderMsgs(); };
+  $('#t2').onclick = () => { tab = 'log'; renderMsgs(); };
+  $('#snd').onclick = sendChat; $('#cin').onkeydown = e => { if (e.key === 'Enter') sendChat(); };
+}
+function render(){
+  if (!code || !shell.built) return;
+  renderParty(); renderStage(); renderDock(); renderMsgs(true);
+}
+function renderParty(){
+  if (solo){ $('#party').innerHTML = `<span class="label">Solo table</span><span class="code" style="letter-spacing:.05em">${players.length - 1} bot${players.length === 2 ? '' : 's'}</span><button class="btn small" id="hp">How to play</button><button class="btn small" id="lv">Leave</button>`; $('#lv').onclick = leave; $('#hp').onclick = openGuide; return; }
+  $('#party').innerHTML = `<span class="label">Party code</span><span class="code">${code}</span>
+    <button class="btn small" id="cc">Copy code</button>${BASE ? '<button class="btn small gold" id="cl">Copy invite link</button>' : ''}
+    <button class="btn small" id="hp">How to play</button><button class="btn small" id="lv">Leave</button>
+    <input id="hid" value="${esc(BASE ? link() : code)}" readonly style="position:absolute;left:-9999px">`;
+  $('#cc').onclick = () => copy(code, 'hid');
+  if (BASE) $('#cl').onclick = () => copy(link(), 'hid');
+  $('#lv').onclick = leave; $('#hp').onclick = openGuide;
+}
+function renderMsgs(soft){
+  if (solo){ tab = 'log'; $('#t1').hidden = true; }
+  $('#t1').classList.toggle('on', tab === 'chat'); $('#t2').classList.toggle('on', tab === 'log');
+  $('#sayrow').hidden = tab !== 'chat';
+  const box = $('#msgs'); if (!box) return;
+  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  if (tab === 'chat'){
+    box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.uid === uid ? 'mine' : ''}"><b>${esc(m.name)}</b> ${esc(m.text)}<time>${new Date(m.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>`).join('') : '<div class="logl">No messages yet. Say hi to the table.</div>';
+  } else {
+    box.innerHTML = game && game.log.length ? game.log.map(l => `<div class="logl">${esc(l)}</div>`).join('') : '<div class="logl">Nothing has happened yet.</div>';
+  }
+  if (!soft || near) box.scrollTop = box.scrollHeight;
+}
+
+function seatPos(k, n){ const a = 2 * Math.PI * k / n; return [50 - 43 * Math.sin(a), 50 + 41 * Math.cos(a)]; }
+function renderStage(){
+  const st = $('#stage');
+  if (!game || game.phase === 'lobby'){
+    st.innerHTML = `<div class="dock"><div class="label">Waiting room</div>
+      <h2 style="font-size:28px">${players.length < 2 ? 'Waiting for your friend…' : 'Everyone is here'}</h2>
+      <ul class="players">${players.map(p => `<li><span>${esc(p.name)}${p.id === (meta && meta.hostId) ? ' <span class="tag">host</span>' : ''}${p.id === uid ? ' <span class="tag">you</span>' : ''}</span><span class="tag">${p.online === false ? 'offline' : fmt(START_CHIPS) + ' chips'}</span></li>`).join('')}</ul>
+      <div class="help">Send the party code <b>${code}</b> or the invite link to your friend. They open it, type a name and join. No account needed.</div>
+      ${isHost() ? `<div><button class="btn gold" id="go" ${players.length < 2 ? 'disabled' : ''}>Deal the first hand</button></div>` : '<div class="status">The host starts the game.</div>'}</div>`;
+    const g = $('#go'); if (g) g.onclick = startGame;
+    return;
+  }
+  const me = mySeat(), n = game.seats.length, base = me >= 0 ? me : 0, res = game.result;
+  const winIds = res ? res.pots.flatMap(p => p.winners) : [];
+  const hk = game.hand + ':';
+  let html = '<div class="felt">';
+  game.seats.forEach((p, i) => {
+    const k = (i - base + n) % n, [x, y] = seatPos(k, n);
+    const out = p.chips <= 0 && !p.hole.length;
+    const cls = ['seat', i === game.turn ? 'turn' : '', p.folded ? 'folded' : '', i === me ? 'me' : '', game.phase === 'showdown' && winIds.includes(p.id) ? 'win' : ''].join(' ');
+    let status = '';
+    if (out) status = '<span class="tag hot">Busted</span>';
+    else if (p.folded && p.hole.length) status = '<span class="tag">Folded</span>';
+    else if (p.allIn) status = '<span class="tag hot">All-in</span>';
+    else if (game.phase === 'showdown' && p.shown && p.handName) status = `<span class="tag ${winIds.includes(p.id) ? 'good' : ''}">${p.handName}</span>`;
+    else if (i === game.turn) status = '<span class="tag hot">Thinking…</span>';
+    const badges = (i === game.dealer ? '<i title="Dealer">D</i>' : '') + (i === game.sbI && !out ? '<i class="bl" title="Small blind">SB</i>' : '') + (i === game.bbI && !out ? '<i class="bl2" title="Big blind">BB</i>' : '');
+    let mini = '';
+    if (p.hole.length && !p.folded && i !== me){
+      mini = game.phase === 'showdown' && p.shown ? p.hole.map((c, j) => cardEl(c, 'sm', seenKey(hk + 's' + i + j))).join('') : p.hole.map(() => backEl('sm')).join('');
+    }
+    const gain = game.phase === 'showdown' && p.won ? `<span class="tag ${p.won > 0 ? 'good' : ''}">${p.won > 0 ? '+' : ''}${fmt(p.won)}</span>` : '';
+    html += `<div class="${cls}" style="left:${x}%;top:${y}%"><div class="mini">${mini}</div>
+      <div class="plate"><div class="badge">${badges}</div><div class="nm">${esc(p.name)}${i === me ? ' (you)' : ''}</div><div class="ch">${fmt(p.chips)}</div></div>
+      ${p.bet ? `<div class="betpill">${fmt(p.bet)}</div>` : '<div class="betpill" style="visibility:hidden">0</div>'}${gain || status}</div>`;
+  });
+  const hit = new Set();
+  html += `<div class="center"><div class="phase">${game.phase === 'over' ? 'Game over' : game.phase === 'showdown' ? 'Showdown' : game.phase} · hand ${game.hand} · ${fmt(game.sb)}/${fmt(game.bb)}</div>
+    <div class="board">${game.board.map((c, j) => cardEl(c, '', seenKey(hk + 'b' + j))).join('') || '<span class="help">No community cards yet</span>'}</div>
+    <div class="pot">Pot<b>${fmt(potOf(game))}</b></div>
+    ${res ? `<div class="banner">${res.pots.map(p => esc(p.winners.map(id => game.seats.find(x => x.id === id).name).join(' & ')) + (p.winners.length > 1 ? ' split ' : ' wins ') + fmt(p.amount) + (p.name ? ' · ' + p.name : '')).join('<br>')}</div>` : ''}
+  </div></div>`;
+  st.innerHTML = html;
+}
+function seenKey(k){ if (seenCards.has(k)) return ''; seenCards.add(k); return 'deal'; }
+
+function renderDock(){
+  const d = $('#dock');
+  if (!game || game.phase === 'lobby'){ d.hidden = true; return; }
+  d.hidden = false;
+  const me = mySeat(), s = me >= 0 ? game.seats[me] : null;
+  const myTurn = s && game.turn === me;
+  const showdown = game.phase === 'showdown';
+  let h = '';
+  if (game.phase === 'over'){
+    const champ = game.seats.slice().sort((a, b) => b.chips - a.chips)[0];
+    d.innerHTML = `<h2 style="font-size:28px">${esc(champ.name)} has all the chips</h2>${isHost() ? '<div><button class="btn gold" id="again">Start a new game</button></div>' : '<div class="status">Waiting for the host to start a new game.</div>'}`;
+    const a = $('#again'); if (a) a.onclick = startGame; return;
+  }
+  if (s && s.hole.length){
+    h += `<div class="mine-row"><div class="mine ${s.folded ? 'out' : ''}" id="mine">${s.hole.map((c, i) => `<div class="pc d${i}" data-i="${i}" title="Hold to peek"><div class="in"><div class="b"></div><div class="f ${isRed(c) ? 'red' : ''}">${suitHtml(c)}</div></div></div>`).join('')}</div>
+      <div style="flex:1;min-width:120px"><button class="btn" id="peek" style="width:100%">Hold to peek<kbd>Space</kbd></button><div class="help" style="margin-top:4px">Release and they flip back.</div></div></div>`;
+  } else if (s){ h += '<div class="status">You are sitting out this hand. You will be dealt in next time.</div>'; }
+  else h += '<div class="status">You joined mid-game. You will be dealt in on the next hand.</div>';
+  if (myTurn && !showdown){
+    const L = legalInfo(game, me);
+    if (raiseTo < L.minTo || raiseTo > L.maxTo) raiseTo = L.minTo;
+    const verb = game.currentBet === 0 ? 'Bet' : 'Raise to';
+    h += `<div class="actions"><div class="two"><button class="btn ruby" id="fold">Fold<kbd>F</kbd></button>
+      <button class="btn gold" id="call">${L.toCall ? 'Call ' + fmt(L.toCall) : 'Check'}<kbd>C</kbd></button></div>
+      ${L.canRaise ? `<div class="raisebox"><div class="r1"><button class="btn" id="raise">${verb} <span id="rv">${fmt(raiseTo)}</span><kbd>R</kbd></button>
+        <input type="range" id="rs" min="${L.minTo}" max="${L.maxTo}" step="${Math.max(1, game.bb / 2)}" value="${raiseTo}" ${L.minTo === L.maxTo ? 'disabled' : ''} aria-label="Raise amount">
+        <input type="number" id="rn" min="${L.minTo}" max="${L.maxTo}" value="${raiseTo}" aria-label="Raise amount"></div>
+        <div class="quick"><button class="btn" data-q="min">Min</button><button class="btn" data-q="half">½ pot</button><button class="btn" data-q="pot">Pot</button><button class="btn ruby" data-q="all">All-in<kbd>A</kbd></button></div></div>` : ''}</div>`;
+  } else if (showdown){
+    h += `<div class="actions"><button class="btn gold" id="next">Deal next hand</button><span class="help">${isHost() ? 'Auto-deals in a few seconds.' : 'The host deals automatically.'}</span></div>`;
+  } else {
+    const t = game.seats[game.turn];
+    h += `<div class="status" id="wait">Waiting for <b>${t ? esc(t.name) : '…'}</b></div>`;
+  }
+  d.innerHTML = h;
+  bindDock(me, myTurn, showdown);
+  syncMine(s);
+}
+function syncMine(s){
+  const m = $('#mine'); if (!m) return;
+  const key = game.hand + ':' + s.hole.join(',');
+  const fresh = key !== lastHandKey;
+  if (fresh){ lastHandKey = key; peekUp = false; clearTimeout(peekTimer); }
+  const reveal = game.phase === 'showdown' && game.result && game.result.reveal && !s.folded;
+  const pcs = m.querySelectorAll('.pc');
+  pcs.forEach(e => { if (!fresh) e.style.animation = 'none'; e.classList.toggle('up', peekUp); });
+  if (reveal && !peekUp){ peekUp = true; /* auto-reveal at showdown */ setTimeout(() => pcs.forEach((e, i) => setTimeout(() => e.classList.add('up'), i * 120)), 500); }
+}
+let peekUp = false;
+function forced(){ const me = mySeat(); return me >= 0 && game && game.phase === 'showdown' && game.result && game.result.reveal && !game.seats[me].folded; }
+function setPeek(on){
+  if (!on && forced()) return;
+  const m = $('#mine'); if (!m || peekUp === on) return;
+  peekUp = on;
+  m.querySelectorAll('.pc').forEach((e, i) => { e.style.animation = 'none'; setTimeout(() => e.classList.toggle('up', peekUp), i * 70); });
+}
+function bindDock(me, myTurn, showdown){
+  [$('#peek'), ...document.querySelectorAll('.pc')].forEach(e => { if (!e) return; e.onpointerdown = ev => { ev.preventDefault(); setPeek(true); }; e.onpointerup = e.onpointerleave = e.onpointercancel = () => setPeek(false); });
+  const nx = $('#next'); if (nx) nx.onclick = nextHand;
+  if (!myTurn || showdown) return;
+  const L = legalInfo(game, me);
+  const setR = v => { raiseTo = Math.max(L.minTo, Math.min(L.maxTo, Math.round(v))); const rs = $('#rs'), rn = $('#rn'), rv = $('#rv'); if (rs) rs.value = raiseTo; if (rn) rn.value = raiseTo; if (rv) rv.textContent = fmt(raiseTo); };
+  $('#fold').onclick = () => doAction('fold');
+  $('#call').onclick = () => doAction('call');
+  if (L.canRaise){
+    $('#raise').onclick = () => doAction('raise', raiseTo);
+    $('#rs').oninput = e => setR(+e.target.value);
+    $('#rn').oninput = e => { const v = +e.target.value; raiseTo = Math.max(L.minTo, Math.min(L.maxTo, v || L.minTo)); $('#rs').value = raiseTo; $('#rv').textContent = fmt(raiseTo); };
+    document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+      const q = b.dataset.q, pot = potOf(game);
+      setR(q === 'min' ? L.minTo : q === 'half' ? game.currentBet + L.toCall + pot / 2 : q === 'pot' ? game.currentBet + L.toCall + pot : L.maxTo);
+      if (q === 'all') doAction('raise', L.maxTo);
+    });
+  }
+}
+document.addEventListener('keydown', e => {
+  if (!code || !game || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target; if (t && (t.tagName === 'INPUT' && t.type !== 'range' || t.tagName === 'TEXTAREA')) return;
+  const k = e.key.toLowerCase();
+  if (k === ' '){ e.preventDefault(); if (!e.repeat) setPeek(true); return; }
+  const me = mySeat(); if (me < 0 || game.turn !== me) return;
+  if (k === 'f') doAction('fold');
+  else if (k === 'c') doAction('call');
+  else if (k === 'a'){ const L = legalInfo(game, me); if (L.canRaise) doAction('raise', L.maxTo); else doAction('call'); }
+  else if (k === 'r' || k === 'enter'){ if (k === 'r' && $('#rn')){ e.preventDefault(); doAction('raise', raiseTo); } }
+});
+
+document.addEventListener('keyup', e => { if (e.key === ' ' && code){ const t = e.target; if (!(t && t.tagName === 'INPUT' && t.type !== 'range')) e.preventDefault(); setPeek(false); } });
+window.addEventListener('blur', () => setPeek(false));
+document.addEventListener('pointerup', () => setPeek(false));
+/* idle-player skip */
+setInterval(() => {
+  if (!code || !game || game.turn < 0 || game.phase === 'showdown') return;
+  const w = $('#wait'); if (!w) return;
+  const idle = Math.floor((Date.now() - game.turnAt) / 1000);
+  if (idle > 45 && !w.querySelector('button')){
+    w.insertAdjacentHTML('beforeend', ' <button class="btn small" id="skip">Fold them (idle)</button>');
+    $('#skip').onclick = () => { if (game && game.turn >= 0 && game.seats[game.turn].id !== uid) send({ t: 'skip' }); };
+  }
+}, 2000);
+
+boot();
+})();
+</script>
